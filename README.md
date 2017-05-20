@@ -14,5 +14,5 @@ jenkinsPlugins2nix github-api > plugins.nix
 and in your `configuration.nix`:
 
 ```
-services.jenkins.plugins = pkgs.callPackage plugins.nix {};
+services.jenkins.plugins = import plugins.nix { inherit (pkgs) fetchurl stdenv; };
 ```
