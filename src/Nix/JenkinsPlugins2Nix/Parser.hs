@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- |
--- Module    : Nix.JenkinsPlugins2Nix.Types
+-- Module    : Nix.JenkinsPlugins2Nix.Parser
 -- Copyright : (c) 2017 Mateusz Kowalczyk
 -- License   : BSD3
 --
@@ -43,32 +43,21 @@ parseManifest = do
       eManifest :: Either String Manifest
       eManifest = do
         manifest_version' <- getKey "Manifest-Version"
-        archiver_version' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Archiver-Version"
-        created_by' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Created-By"
-        built_by' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Built-By"
-        build_jdk' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Build-Jdk"
-        extension_name' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Extension-Name"
-        specification_title' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Specification-Title"
-        implementation_title' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Implementation-Title"
-        implementation_version' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Implementation-Version"
-        group_id' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Group-Id"
+        archiver_version' <- optional $ getKey "Archiver-Version"
+        created_by' <- optional $ getKey "Created-By"
+        built_by' <- optional $ getKey "Built-By"
+        build_jdk' <- optional $ getKey "Build-Jdk"
+        extension_name' <- optional $ getKey "Extension-Name"
+        specification_title' <- optional $ getKey "Specification-Title"
+        implementation_title' <- optional $ getKey "Implementation-Title"
+        implementation_version' <- optional $ getKey "Implementation-Version"
+        group_id' <- optional $ getKey "Group-Id"
         short_name' <- getKey "Short-Name"
         long_name' <- getKey "Long-Name"
         url' <- getKey "Url"
         plugin_version' <- getKey "Plugin-Version"
-        hudson_version' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Hudson-Version"
-        jenkins_version' <- either (\_ -> Right Nothing) (return . Just) $
-          getKey "Jenkins-Version"
+        hudson_version' <- optional $ getKey "Hudson-Version"
+        jenkins_version' <- optional $ getKey "Jenkins-Version"
         plugin_dependencies' <- either (\_ -> Right Set.empty) return $
           getKeyParsing "Plugin-Dependencies" parsePluginDependencies
         plugin_developers' <- either (\_ -> Right Set.empty) return $

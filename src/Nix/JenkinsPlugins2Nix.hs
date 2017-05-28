@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- |
--- Module    : Nix.JenkinsPlugins2Nix.Types
+-- Module    : Nix.JenkinsPlugins2Nix
 -- Copyright : (c) 2017 Mateusz Kowalczyk
 -- License   : BSD3
 --
@@ -8,6 +8,7 @@
 module Nix.JenkinsPlugins2Nix where
 
 import qualified Codec.Archive.Zip as Zip
+import           Control.Arrow ((&&&))
 import           Control.Monad (foldM)
 import qualified Control.Monad.Except as MTL
 import qualified Crypto.Hash as Hash
@@ -66,27 +67,48 @@ downloadPlugin p = do
         }
 
 -- | Download the given plugin as well as recursively download its dependencies.
-downloadPluginsRecursive :: Map Text Plugin -- ^ Already downloaded plugins.
-                         -> RequestedPlugin -- ^ Plugins we're asked to download.
-                         -> MTL.ExceptT String IO (Map Text Plugin)
-downloadPluginsRecursive m p = if Map.member (requested_name p) m
+downloadPluginsRecursive
+  :: ResolutionStrategy -- ^ Decide what version of dependencies to pick.
+  -> Map Text RequestedPlugin -- ^ Plugins user requested.
+  -> Map Text Plugin -- ^ Already downloaded plugins.
+  -> RequestedPlugin -- ^ Plugin we're going to download.
+  -> MTL.ExceptT String IO (Map Text Plugin)
+downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
   then return m
   else do
-    plugin <- MTL.ExceptT $ downloadPlugin p
-    foldM (\m' p' -> downloadPluginsRecursive m' $
+        -- Adjust the requested plugin based on whether it was
+        -- specifically requested by the user and on resolution
+        -- strategy.
+    let adjustedPlugin = case Map.lookup (requested_name p) uPs of
+          -- This is not a user-requested plugin which means we have
+          -- to decide what version we're going to grab.
+          Nothing -> case strategy of
+            -- We're just going with whatever was in the manifest
+            -- file, i.e. the thing we passed in in the first place.
+            AsGiven -> p
+            -- It's not a user-specified plugin and we want the latest
+            -- version per strategy so download the latest one.
+            Latest -> p { requested_version = Nothing }
+          -- The user has asked for this plugin explicitly so use
+          -- their possibly-versioned request rather than picking
+          -- based on versions listed in manifest dependencies.
+          Just userPlugin -> userPlugin
+    plugin <- MTL.ExceptT $ downloadPlugin adjustedPlugin
+    foldM (\m' p' -> downloadPluginsRecursive strategy uPs m' $
               RequestedPlugin { requested_name = plugin_dependency_name p'
-                              , requested_version = Just $ plugin_dependency_version p'
+                              , requested_version = Just $! plugin_dependency_version p'
                               })
       (Map.insert (requested_name p) plugin m)
       (plugin_dependencies $ manifest plugin)
 
 -- | Pretty-print nix expression for all the given plugins and their
 -- dependencies that the user asked for.
-mkExprsFor :: [RequestedPlugin]
+mkExprsFor :: Config
            -> IO (Either String Pretty.Doc)
-mkExprsFor ps = do
+mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
   eplugins <- MTL.runExceptT $ do
-    plugins <- foldM downloadPluginsRecursive Map.empty ps
+    let userPlugins = Map.fromList $ map (requested_name &&& id) ps
+    plugins <- foldM (downloadPluginsRecursive st userPlugins) Map.empty ps
     return $ Map.elems plugins
   return $! case eplugins of
     Left err -> Left err

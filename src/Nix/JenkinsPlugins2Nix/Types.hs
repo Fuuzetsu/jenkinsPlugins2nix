@@ -6,16 +6,36 @@
 --
 -- Types used through-out jenkinsPlugins2nix
 module Nix.JenkinsPlugins2Nix.Types
-  ( Manifest(..)
+  ( Config(..)
+  , Manifest(..)
   , Plugin(..)
   , PluginDependency(..)
   , PluginResolution(..)
   , RequestedPlugin(..)
+  , ResolutionStrategy(..)
   ) where
 
 import qualified Crypto.Hash as Hash
 import           Data.Set (Set)
 import           Data.Text (Text)
+
+-- | The way in which version of dependencies will be picked.
+data ResolutionStrategy =
+  -- | Pick the version of the dependency that the package tells us
+  -- about in its manifest file. If none, latest version available is
+  -- used.
+  AsGiven
+  -- | Always pick latest version of the dependency we're told about.
+  | Latest
+  deriving (Show, Eq, Ord)
+
+-- | Program configuration
+data Config = Config
+  { -- | Dependency resolution strategy
+    resolution_strategy :: !ResolutionStrategy
+    -- | User-required plugins.
+  , requested_plugins :: ![RequestedPlugin]
+  } deriving (Show, Eq, Ord)
 
 -- | Plugin that user requested on the command line.
 data RequestedPlugin = RequestedPlugin
