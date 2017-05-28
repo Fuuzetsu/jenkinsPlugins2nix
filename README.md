@@ -39,7 +39,7 @@ specify:
 jenkins2nix -r latest -p A:0.7 -p B:0.1
 ```
 
-We will end up with `A:0.7` and `B:0.2`. This also applies when no
+We will end up with `A:0.7` and `B:0.1`. This also applies when no
 explicit version is provided which is equivalent to asking for the
 latest one.
 

@@ -1,5 +1,5 @@
 name:                jenkinsPlugins2nix
-version:             0.2.0.1
+version:             0.2.0.2
 synopsis:            Generate nix for Jenkins plugins.
 description:         Generate nix for Jenkins plugins.
 homepage:            https://github.com/Fuuzetsu/jenkinsPlugins2nix#readme
