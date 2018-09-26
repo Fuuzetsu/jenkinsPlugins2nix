@@ -29,30 +29,57 @@ import           System.IO (stderr)
 import qualified Text.PrettyPrint.ANSI.Leijen as Pretty
 import           Text.Printf (printf)
 
--- | Get the download URL of the plugin we're looking for.
-getPluginUrl :: RequestedPlugin -> Text
-getPluginUrl (RequestedPlugin { requested_name = n, requested_version = Just v })
-  = Text.pack
-  $ printf "https://updates.jenkins-ci.org/download/plugins/%s/%s/%s.hpi"
-           (Text.unpack n) (Text.unpack v) (Text.unpack n)
-getPluginUrl (RequestedPlugin { requested_name = n, requested_version = Nothing })
-  = Text.pack
-  $ printf "https://updates.jenkins-ci.org/latest/%s.hpi"
-           (Text.unpack n)
+-- | Get the download URLs of the plugin we're looking for.
+getPluginUrls :: RequestedPlugin -> [Text]
+getPluginUrls (RequestedPlugin { requested_name = n, requested_version = Just v })
+  = fmap Text.pack
+      [ printf "https://updates.jenkins-ci.org/download/plugins/%s/%s/%s.hpi"
+          (Text.unpack n) (Text.unpack v) (Text.unpack n)
+      , printf "http://archives.jenkins-ci.org/plugins/%s/%s/%s.hpi"
+          (Text.unpack n) (Text.unpack v) (Text.unpack n)
+      ]
+getPluginUrls (RequestedPlugin { requested_name = n, requested_version = Nothing })
+  = fmap Text.pack
+      [ printf "https://updates.jenkins-ci.org/latest/%s.hpi"
+          (Text.unpack n)
+      ]
 
--- | Download a plugin from 'getPluginUrl'.
-downloadPlugin :: RequestedPlugin -> IO (Either String Plugin)
-downloadPlugin p = do
-  let fullUrl = getPluginUrl p
+-- | Given the Url, returns the manifest file, the Url and the hash of the original
+-- file.
+getManifestFileText :: Text -> IO (Maybe (Text, Text, Hash.Digest Hash.SHA256))
+getManifestFileText fullUrl = do
   Text.hPutStrLn stderr $ "Downloading " <> fullUrl
   req <- HTTP.parseRequest $ Text.unpack fullUrl
   archiveLBS <- HTTP.getResponseBody <$> HTTP.httpLBS req
-  let manifestFileText = fmap (Text.decodeUtf8 . BSL.toStrict . Zip.fromEntry)
-                       $ Zip.findEntryByPath "META-INF/MANIFEST.MF"
-                       $ Zip.toArchive archiveLBS
+  let
+    manifestFileText =
+        fmap (Text.decodeUtf8 . BSL.toStrict . Zip.fromEntry)
+      $ Zip.findEntryByPath "META-INF/MANIFEST.MF"
+      $ Zip.toArchive archiveLBS
+  pure $
+    (\m -> (m, fullUrl, Hash.hashlazy archiveLBS)) <$> manifestFileText
+
+useFirstWorking :: (a -> IO (Maybe b)) -> [a] -> IO (Maybe b)
+useFirstWorking _ [] = do
+  putStrLn "No options."
+  pure Nothing
+useFirstWorking f (x:xs) = do
+  m <- f x
+  case m of
+    Just a ->
+      pure $ Just a
+    Nothing -> do
+      putStrLn "Failed. Trying next option."
+      useFirstWorking f xs
+
+-- | Download a plugin from 'getPluginUrls'.
+downloadPlugin :: RequestedPlugin -> IO (Either String Plugin)
+downloadPlugin p = do
+  let fullUrls = getPluginUrls p
+  manifestFileText <- useFirstWorking getManifestFileText fullUrls
   case manifestFileText of
     Nothing -> return $ Left "Could not find manifest file in the archive."
-    Just t -> return $! case Parser.runParseManifest t of
+    Just (t, url', sha256') -> return $! case Parser.runParseManifest t of
       Left err -> Left err
       Right manifest' -> Right $! Plugin
            -- We have to account for user not specifying the version.
@@ -60,9 +87,13 @@ downloadPlugin p = do
            -- not have a URL pointing at static resource. We do
            -- however have the version of the package now so we can
            -- reconstruct the URL.
-        { download_url = getPluginUrl $
-            p { requested_version = Just $! plugin_version manifest' }
-        , sha256 = Hash.hashlazy archiveLBS
+        { download_url =
+            case requested_version p of
+              Nothing ->
+                head $ getPluginUrls $
+                  p { requested_version = Just $! plugin_version manifest' }
+              Just _ -> url'
+        , sha256 = sha256'
         , manifest = manifest'
         }
 

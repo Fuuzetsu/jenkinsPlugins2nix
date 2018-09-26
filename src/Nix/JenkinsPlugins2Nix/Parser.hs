@@ -23,6 +23,7 @@ import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Nix.JenkinsPlugins2Nix.Types
+import           Text.Printf (printf)
 
 -- | Run parser on manifest file contents.
 runParseManifest :: Text -> Either String Manifest
@@ -40,6 +41,18 @@ parseManifest = do
       getKeyParsing :: Text -> A.Parser a -> Either String a
       getKeyParsing k p = getKey k >>= A.parseOnly p
 
+      -- If Url is not present in the file, reconstruct it from the plugin name
+      -- and its version.
+      getUrl :: Either String Text
+      getUrl = case getKey "Url" of
+        Left _ -> do
+          n <- getKey "Short-Name"
+          v <- getKey "Implementation-Version"
+          pure $ Text.pack $
+            printf "https://updates.jenkins-ci.org/download/plugins/%s/%s/%s.hpi"
+              (Text.unpack n) (Text.unpack v) (Text.unpack n)
+        Right a -> Right a
+
       eManifest :: Either String Manifest
       eManifest = do
         manifest_version' <- getKey "Manifest-Version"
@@ -54,7 +67,7 @@ parseManifest = do
         group_id' <- optional $ getKey "Group-Id"
         short_name' <- getKey "Short-Name"
         long_name' <- getKey "Long-Name"
-        url' <- getKey "Url"
+        url' <- getUrl
         plugin_version' <- getKey "Plugin-Version"
         hudson_version' <- optional $ getKey "Hudson-Version"
         jenkins_version' <- optional $ getKey "Jenkins-Version"
