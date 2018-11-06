@@ -35,6 +35,8 @@ data Config = Config
     resolution_strategy :: !ResolutionStrategy
     -- | User-required plugins.
   , requested_plugins :: ![RequestedPlugin]
+    -- | Bet you can't guess what a filename is?!
+  , plugins_list_filepath :: !(Maybe String)
   } deriving (Show, Eq, Ord)
 
 -- | Plugin that user requested on the command line.

@@ -51,6 +51,13 @@ parseConfig = Config
                <> Opt.short 'p'
                <> Opt.help "Plugins we should generate nix for. Latest version is used if not specified." )
                )
+  <*> Opt.option (Opt.maybeReader $ \x -> Just $ if x == "" then Nothing else Just x)
+     ( Opt.long "file"
+    <> Opt.short 'f'
+    <> Opt.help "A file containing a list of plugins in the same format as -p, one plugin per line."
+    <> Opt.value Nothing
+    )
+
   where
     resolutions :: Bimap.Bimap ResolutionStrategy String
     resolutions = Bimap.fromList [(AsGiven, "as-given"), (Latest, "latest")]
@@ -62,12 +69,6 @@ parseConfig = Config
       Just v -> Right v
 
     requestedPluginReader :: Opt.ReadM RequestedPlugin
-    requestedPluginReader = Opt.maybeReader $ \p -> Just $! case break (== ':') p of
-      (n, ':' : ver) -> RequestedPlugin
-        { requested_name = Text.pack n
-        , requested_version = Just (Text.pack ver)
-        }
-      _ -> RequestedPlugin
-        { requested_name = Text.pack p
-        , requested_version = Nothing
-        }
+    requestedPluginReader = Opt.maybeReader parseRequestedPlugin
+
+

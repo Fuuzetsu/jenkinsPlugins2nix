@@ -101,15 +101,18 @@ downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
       (Map.insert (requested_name p) plugin m)
       (plugin_dependencies $ manifest plugin)
 
+
 -- | Pretty-print nix expression for all the given plugins and their
 -- dependencies that the user asked for.
 mkExprsFor :: Config
            -> IO (Either String Pretty.Doc)
-mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
+mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps', plugins_list_filepath = plfp }) = do
+  fplugins <- getFilePlugins plfp
+  let ps = fplugins <> ps'
   eplugins <- MTL.runExceptT $ do
     let userPlugins = Map.fromList $ map (requested_name &&& id) ps
     plugins <- foldM (downloadPluginsRecursive st userPlugins) Map.empty ps
-    return $ Map.elems plugins
+    return $ Map.elems $ plugins
   return $! case eplugins of
     Left err -> Left err
     Right plugins ->
@@ -151,3 +154,20 @@ mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
       [ ("stdenv", Nothing)
       , ("fetchurl", Nothing)
       ]
+
+
+parseRequestedPlugin :: String -> Maybe RequestedPlugin
+parseRequestedPlugin p = Just $! case break (== ':') p of
+      (n, ':' : ver) -> RequestedPlugin
+        { requested_name = Text.pack n
+        , requested_version = Just (Text.pack ver)
+        }
+      _ -> RequestedPlugin
+        { requested_name = Text.pack p
+        , requested_version = Nothing
+        }
+
+
+getFilePlugins :: Maybe String -> IO [RequestedPlugin]
+getFilePlugins Nothing = pure []
+getFilePlugins (Just p) = maybe [] id . traverse parseRequestedPlugin . lines <$> readFile p
