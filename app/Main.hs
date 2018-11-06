@@ -11,7 +11,6 @@ module Main (main) where
 import qualified Data.Bimap as Bimap
 import           Data.List (intersperse)
 import           Data.Monoid ((<>), mconcat)
-import qualified Data.Text as Text
 import           Nix.JenkinsPlugins2Nix
 import           Nix.JenkinsPlugins2Nix.Types
 import qualified Options.Applicative as Opt
@@ -45,12 +44,12 @@ parseConfig = Config
      <> Opt.showDefaultWith (resolutions Bimap.!)
      <> Opt.metavar (printf "[%s]" . mconcat . intersperse "|" $ Bimap.keysR resolutions)
      <> Opt.value Latest )
-  <*> Opt.some (Opt.option requestedPluginReader
+  <*> (Opt.many ( Opt.option requestedPluginReader
                 ( Opt.metavar "PLUGIN_NAME{:PLUGIN_VERSION}"
                <> Opt.long "plugin"
                <> Opt.short 'p'
                <> Opt.help "Plugins we should generate nix for. Latest version is used if not specified." )
-               )
+               ) )
   <*> Opt.option (Opt.maybeReader $ \x -> Just $ if x == "" then Nothing else Just x)
      ( Opt.long "file"
     <> Opt.short 'f'
@@ -69,6 +68,6 @@ parseConfig = Config
       Just v -> Right v
 
     requestedPluginReader :: Opt.ReadM RequestedPlugin
-    requestedPluginReader = Opt.maybeReader parseRequestedPlugin
+    requestedPluginReader = Opt.maybeReader $ parseRequestedPlugin
 
 
