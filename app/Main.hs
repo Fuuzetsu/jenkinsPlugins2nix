@@ -44,11 +44,17 @@ parseConfig = Config
      <> Opt.showDefaultWith (resolutions Bimap.!)
      <> Opt.metavar (printf "[%s]" . mconcat . intersperse "|" $ Bimap.keysR resolutions)
      <> Opt.value Latest )
-  <*> (Opt.many ( Opt.option requestedPluginReader
+  <*> fmap WhiteList (Opt.many ( Opt.option requestedPluginReader
                 ( Opt.metavar "PLUGIN_NAME{:PLUGIN_VERSION}"
                <> Opt.long "plugin"
                <> Opt.short 'p'
                <> Opt.help "Plugins we should generate nix for. Latest version is used if not specified." )
+               ) )
+  <*> fmap BlackList (Opt.many ( Opt.option requestedPluginReader
+                ( Opt.metavar "BLACKLISTED_PLUGIN"
+               <> Opt.long "blacklist"
+               <> Opt.short 'b'
+               <> Opt.help "Plugins within the dependency graph we should not generate nix for." )
                ) )
   <*> Opt.option (Opt.maybeReader $ \x -> Just $ if x == "" then Nothing else Just x)
      ( Opt.long "file"

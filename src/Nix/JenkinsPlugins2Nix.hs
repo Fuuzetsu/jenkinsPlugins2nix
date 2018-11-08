@@ -13,16 +13,18 @@ import           Control.Monad (foldM)
 import qualified Control.Monad.Except as MTL
 import qualified Crypto.Hash as Hash
 import qualified Data.ByteString.Lazy as BSL
+import           Data.List (findIndex, splitAt)
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid ((<>))
-import           Data.Text (Text)
+import           Data.Text (Text, strip, pack)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
 import qualified Network.HTTP.Simple as HTTP
 import qualified Nix.Expr as Nix
 import qualified Nix.JenkinsPlugins2Nix.Parser as Parser
+import qualified Data.Set as Set
 import           Nix.JenkinsPlugins2Nix.Types
 import qualified Nix.Pretty as Nix
 import           System.IO (stderr)
@@ -70,10 +72,11 @@ downloadPlugin p = do
 downloadPluginsRecursive
   :: ResolutionStrategy -- ^ Decide what version of dependencies to pick.
   -> Map Text RequestedPlugin -- ^ Plugins user requested.
+  -> BlackList
   -> Map Text Plugin -- ^ Already downloaded plugins.
   -> RequestedPlugin -- ^ Plugin we're going to download.
   -> MTL.ExceptT String IO (Map Text Plugin)
-downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
+downloadPluginsRecursive strategy uPs bb@(BlackList black) m p = if Map.member (requested_name p) m
   then return m
   else do
         -- Adjust the requested plugin based on whether it was
@@ -94,24 +97,27 @@ downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
           -- based on versions listed in manifest dependencies.
           Just userPlugin -> userPlugin
     plugin <- MTL.ExceptT $ downloadPlugin adjustedPlugin
-    foldM (\m' p' -> downloadPluginsRecursive strategy uPs m' $
+    foldM (\m' p' -> downloadPluginsRecursive strategy uPs bb m' $
               RequestedPlugin { requested_name = plugin_dependency_name p'
                               , requested_version = Just $! plugin_dependency_version p'
                               })
       (Map.insert (requested_name p) plugin m)
-      (plugin_dependencies $ manifest plugin)
-
+      (Set.filter (\x -> not $ elem (plugin_dependency_name x) (requested_name <$> black))
+        . plugin_dependencies $ manifest plugin)
 
 -- | Pretty-print nix expression for all the given plugins and their
 -- dependencies that the user asked for.
 mkExprsFor :: Config
            -> IO (Either String Pretty.Doc)
-mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps', plugins_list_filepath = plfp }) = do
-  fplugins <- getFilePlugins plfp
-  let ps = fplugins <> ps'
+mkExprsFor (Config { resolution_strategy = st, requested_plugins = cwhite, blacklist = cblack, plugins_list_filepath = plfp }) = do
+  (fwhite, fblack) <- getFilePlugins plfp
+  let
+    WhiteList white = fwhite <> cwhite
+    bb@(BlackList black) = fblack <> cblack
+    ps = filter (not . flip elem black) white
   eplugins <- MTL.runExceptT $ do
     let userPlugins = Map.fromList $ map (requested_name &&& id) ps
-    plugins <- foldM (downloadPluginsRecursive st userPlugins) Map.empty ps
+    plugins <- foldM (downloadPluginsRecursive st userPlugins bb) Map.empty ps
     return $ Map.elems $ plugins
   return $! case eplugins of
     Left err -> Left err
@@ -167,7 +173,16 @@ parseRequestedPlugin p = Just $! case break (== ':') p of
         , requested_version = Nothing
         }
 
-
-getFilePlugins :: Maybe String -> IO [RequestedPlugin]
-getFilePlugins Nothing = pure []
-getFilePlugins (Just p) = maybe [] id . traverse parseRequestedPlugin . lines <$> readFile p
+getFilePlugins :: Maybe String -> IO (WhiteList, BlackList)
+getFilePlugins Nothing = pure (WhiteList [], BlackList [])
+getFilePlugins (Just p) = do
+  ls <- lines <$> readFile p
+  let
+    parseList = maybe [] id . traverse parseRequestedPlugin
+    lf = filter (\x -> strip (pack x) /= "") ls
+    l = dropWhile (\x -> strip (pack x) == "[plugins]") lf
+    bli = findIndex (== "[blacklist]") l
+    (wl, bl) = case bli of
+      Just n -> let (w, b) = splitAt n l in (w, tail b)
+      Nothing -> (l, [])
+  return $ (WhiteList $ parseList wl, BlackList $ parseList bl)

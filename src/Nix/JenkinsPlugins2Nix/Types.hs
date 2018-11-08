@@ -1,4 +1,5 @@
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- |
 -- Module    : Nix.JenkinsPlugins2Nix.Types
 -- Copyright : (c) 2017 Mateusz Kowalczyk
@@ -13,6 +14,8 @@ module Nix.JenkinsPlugins2Nix.Types
   , PluginResolution(..)
   , RequestedPlugin(..)
   , ResolutionStrategy(..)
+  , WhiteList (..)
+  , BlackList (..)
   ) where
 
 import qualified Crypto.Hash as Hash
@@ -34,7 +37,8 @@ data Config = Config
   { -- | Dependency resolution strategy
     resolution_strategy :: !ResolutionStrategy
     -- | User-required plugins.
-  , requested_plugins :: ![RequestedPlugin]
+  , requested_plugins :: !WhiteList
+  , blacklist :: !BlackList
     -- | Bet you can't guess what a filename is?!
   , plugins_list_filepath :: !(Maybe String)
   } deriving (Show, Eq, Ord)
@@ -47,6 +51,9 @@ data RequestedPlugin = RequestedPlugin
     -- version is downloaded then pinned.
   , requested_version :: !(Maybe Text)
   } deriving (Show, Eq, Ord)
+
+newtype WhiteList = WhiteList { unWhiteList :: [RequestedPlugin] } deriving (Show, Eq, Ord, Monoid)
+newtype BlackList = BlackList { unBlackList :: [RequestedPlugin] } deriving (Show, Eq, Ord, Monoid)
 
 -- | Plugin resolution. Determines optional plugins.
 data PluginResolution = Mandatory | Optional
