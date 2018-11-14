@@ -22,6 +22,7 @@ import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
 import qualified Network.HTTP.Simple as HTTP
 import qualified Nix.Expr as Nix
+import           Nix.Expr.Shorthands ((@@))
 import qualified Nix.JenkinsPlugins2Nix.Parser as Parser
 import           Nix.JenkinsPlugins2Nix.Types
 import qualified Nix.Pretty as Nix
@@ -113,16 +114,17 @@ mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
   return $! case eplugins of
     Left err -> Left err
     Right plugins ->
-      let args = Nix.mkParamset exprs
+      let args = Nix.mkParamset exprs False
           res = Nix.mkNonRecSet $ map formatPlugin plugins
           mkJenkinsPlugin = Nix.bindTo "mkJenkinsPlugin" $
             Nix.mkFunction (Nix.mkParamset
                               [ ("name", Nothing)
                               , ("src", Nothing)
-                              ]) $
-              Nix.mkApp (Nix.mkSym "stdenv.mkDerivation") $ Nix.mkNonRecSet
+                              ]
+                              False) $
+              Nix.mkSym "stdenv.mkDerivation" @@ Nix.mkNonRecSet
                 [ Nix.inherit [ Nix.StaticKey "name"
-                              , Nix.StaticKey "src" ]
+                              , Nix.StaticKey "src" ] Nix.nullPos
                 , "phases" Nix.$= Nix.mkStr "installPhase"
                 , "installPhase" Nix.$= Nix.mkStr "cp $src $out"
                 ]
@@ -132,16 +134,16 @@ mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
 
   where
     fetchurl :: Plugin -> Nix.NExpr
-    fetchurl p = Nix.mkApp (Nix.mkSym "fetchurl") $
-      Nix.mkNonRecSet [ "url" Nix.$= Nix.mkUri (download_url p)
+    fetchurl p = Nix.mkSym "fetchurl" @@
+      Nix.mkNonRecSet [ "url" Nix.$= Nix.mkStr (download_url p)
                       , "sha256" Nix.$= Nix.mkStr (Text.pack . show $ sha256 p)
                       ]
 
     mkBody :: Plugin -> Nix.NExpr
-    mkBody p = Nix.mkApp (Nix.mkSym "mkJenkinsPlugin") $
-      Nix.mkNonRecSet $ [ "name" Nix.$= Nix.mkStr (short_name $ manifest p)
-                        , "src" Nix.$= fetchurl p
-                        ]
+    mkBody p = Nix.mkSym "mkJenkinsPlugin" @@
+      Nix.mkNonRecSet [ "name" Nix.$= Nix.mkStr (short_name $ manifest p)
+                      , "src" Nix.$= fetchurl p
+                      ]
 
     formatPlugin :: Plugin -> Nix.Binding Nix.NExpr
     formatPlugin p = short_name (manifest p) Nix.$= mkBody p
