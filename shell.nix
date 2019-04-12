@@ -1,11 +1,5 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "default", doBenchmark ? false }:
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc864" }:
 let
-  inherit (nixpkgs) pkgs;
-  f = import ./default.nix;
-  haskellPackages = if compiler == "default"
-                       then pkgs.haskellPackages
-                       else pkgs.haskell.packages.${compiler};
-  variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
-  drv = variant (haskellPackages.callPackage f {});
+  drv = import ./default.nix { inherit nixpkgs compiler; };
 in
-  if pkgs.lib.inNixShell then drv.env else drv
+  if nixpkgs.pkgs.lib.inNixShell then drv.env else drv

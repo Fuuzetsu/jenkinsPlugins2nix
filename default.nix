@@ -1,22 +1,15 @@
-{ mkDerivation, ansi-wl-pprint, attoparsec, base, bimap, bytestring
-, containers, cryptohash, hnix, http-conduit, mtl
-, optparse-applicative, stdenv, tasty-hspec, text, zip-archive
-}:
-mkDerivation {
-  pname = "jenkinsPlugins2nix";
-  version = "0.2.0.2";
-  src = ./.;
-  isLibrary = true;
-  isExecutable = true;
-  libraryHaskellDepends = [
-    ansi-wl-pprint attoparsec base bytestring containers cryptohash
-    hnix http-conduit mtl text zip-archive
-  ];
-  executableHaskellDepends = [
-    ansi-wl-pprint base bimap optparse-applicative text
-  ];
-  testHaskellDepends = [ base containers tasty-hspec text ];
-  homepage = "https://github.com/Fuuzetsu/jenkinsPlugins2nix#readme";
-  description = "Generate nix for Jenkins plugins";
-  license = stdenv.lib.licenses.bsd3;
-}
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc864" }:
+let
+  inherit (nixpkgs) pkgs;
+  haskellPackages = if compiler == "default"
+                       then pkgs.haskellPackages
+                       else pkgs.haskell.packages.${compiler};
+  jenkinsPlugins2nix = import ./jenkinsPlugins2nix.nix;
+  hnix = import (nixpkgs.fetchFromGitHub {
+            owner = "haskell-nix";
+            repo = "hnix";
+            rev = "0.6.0";
+            sha256 = "1gms2pb4x95c1ibr2gbsbfbba4sm5qcz8nwmwksiwpx1qcmmi6j4";
+            }) { inherit (nixpkgs) pkgs; compiler = compiler; };
+in
+haskellPackages.callPackage jenkinsPlugins2nix { hnix = pkgs.haskell.lib.dontCheck hnix; }
