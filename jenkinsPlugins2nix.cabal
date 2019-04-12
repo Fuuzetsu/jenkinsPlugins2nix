@@ -18,7 +18,7 @@ library
   exposed-modules:     Nix.JenkinsPlugins2Nix
                        Nix.JenkinsPlugins2Nix.Parser
                        Nix.JenkinsPlugins2Nix.Types
-  build-depends:       base >= 4.7 && < 5
+  build-depends:       base           >=4.7  && < 5
                      , ansi-wl-pprint >=0.6  && <0.7
                      , attoparsec     >=0.13 && <0.14
                      , bytestring     >=0.10 && <0.11
