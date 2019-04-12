@@ -8,17 +8,17 @@
 -- @jenkinsPlugins2nix@ entry point.
 module Main (main) where
 
-import qualified Data.Bimap as Bimap
-import           Data.List (intersperse)
-import           Data.Monoid ((<>), mconcat)
-import qualified Data.Text as Text
+import qualified Data.Bimap                                as Bimap
+import           Data.List                                 (intersperse)
+import           Data.Monoid                               (mconcat, (<>))
+import qualified Data.Text                                 as Text
+import           Data.Text.Prettyprint.Doc.Render.Terminal (putDoc)
 import           Nix.JenkinsPlugins2Nix
 import           Nix.JenkinsPlugins2Nix.Types
-import qualified Options.Applicative as Opt
+import qualified Options.Applicative                       as Opt
 import           System.Exit
 import           System.IO
-import qualified Text.PrettyPrint.ANSI.Leijen as Pretty
-import           Text.Printf (printf)
+import           Text.Printf                               (printf)
 
 main :: IO ()
 main = do
@@ -28,7 +28,7 @@ main = do
       hPutStrLn stderr err
       exitFailure
     Right p -> do
-      Pretty.putDoc p
+      putDoc p
       exitSuccess
   where
     opts = Opt.info (parseConfig Opt.<**> Opt.helper)

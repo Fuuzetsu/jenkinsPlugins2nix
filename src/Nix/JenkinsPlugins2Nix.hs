@@ -7,28 +7,28 @@
 -- Main library entry point.
 module Nix.JenkinsPlugins2Nix where
 
-import qualified Codec.Archive.Zip as Zip
-import           Control.Arrow ((&&&))
-import           Control.Monad (foldM)
-import qualified Control.Monad.Except as MTL
-import qualified Crypto.Hash as Hash
-import qualified Data.ByteString.Lazy as BSL
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import           Data.Monoid ((<>))
-import           Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.Text.IO as Text
-import qualified Network.HTTP.Simple as HTTP
-import qualified Nix.Expr as Nix
-import           Nix.Expr.Shorthands ((@@))
+import qualified Codec.Archive.Zip             as Zip
+import           Control.Arrow                 ((&&&))
+import           Control.Monad                 (foldM)
+import qualified Control.Monad.Except          as MTL
+import qualified Crypto.Hash                   as Hash
+import qualified Data.ByteString.Lazy          as BSL
+import           Data.Map.Strict               (Map)
+import qualified Data.Map.Strict               as Map
+import           Data.Monoid                   ((<>))
+import           Data.Text                     (Text)
+import qualified Data.Text                     as Text
+import qualified Data.Text.Encoding            as Text
+import qualified Data.Text.IO                  as Text
+import           Data.Text.Prettyprint.Doc     (Doc)
+import qualified Network.HTTP.Simple           as HTTP
+import qualified Nix.Expr                      as Nix
+import           Nix.Expr.Shorthands           ((@@))
 import qualified Nix.JenkinsPlugins2Nix.Parser as Parser
 import           Nix.JenkinsPlugins2Nix.Types
-import qualified Nix.Pretty as Nix
-import           System.IO (stderr)
-import qualified Text.PrettyPrint.ANSI.Leijen as Pretty
-import           Text.Printf (printf)
+import qualified Nix.Pretty                    as Nix
+import           System.IO                     (stderr)
+import           Text.Printf                   (printf)
 
 -- | Get the download URL of the plugin we're looking for.
 getPluginUrl :: RequestedPlugin -> Text
@@ -89,7 +89,7 @@ downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
             AsGiven -> p
             -- It's not a user-specified plugin and we want the latest
             -- version per strategy so download the latest one.
-            Latest -> p { requested_version = Nothing }
+            Latest  -> p { requested_version = Nothing }
           -- The user has asked for this plugin explicitly so use
           -- their possibly-versioned request rather than picking
           -- based on versions listed in manifest dependencies.
@@ -105,7 +105,7 @@ downloadPluginsRecursive strategy uPs m p = if Map.member (requested_name p) m
 -- | Pretty-print nix expression for all the given plugins and their
 -- dependencies that the user asked for.
 mkExprsFor :: Config
-           -> IO (Either String Pretty.Doc)
+           -> IO (Either String (Doc ann))
 mkExprsFor (Config { resolution_strategy = st, requested_plugins = ps }) = do
   eplugins <- MTL.runExceptT $ do
     let userPlugins = Map.fromList $ map (requested_name &&& id) ps
