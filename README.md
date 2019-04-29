@@ -36,7 +36,7 @@ if plugin `A` has a dependency `B:0.2` in its manifest file and we
 specify:
 
 ```
-jenkins2nix -r latest -p A:0.7 -p B:0.1
+jenkinsPlugins2nix -r latest -p A:0.7 -p B:0.1
 ```
 
 We will end up with `A:0.7` and `B:0.1`. This also applies when no
