@@ -8,8 +8,8 @@ let
   hnix = import (nixpkgs.fetchFromGitHub {
             owner = "haskell-nix";
             repo = "hnix";
-            rev = "0.6.0";
-            sha256 = "1gms2pb4x95c1ibr2gbsbfbba4sm5qcz8nwmwksiwpx1qcmmi6j4";
+            rev = "0.6.1";
+            sha256 = "1v1g63icw66290lsr8g51gb13dgm3xbgqdq71q2g0v0bfc2nfd1c";
             }) { inherit (nixpkgs) pkgs; compiler = compiler; };
 in
 haskellPackages.callPackage jenkinsPlugins2nix { hnix = pkgs.haskell.lib.dontCheck hnix; }
