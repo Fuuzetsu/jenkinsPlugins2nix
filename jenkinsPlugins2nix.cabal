@@ -1,5 +1,5 @@
 name:                jenkinsPlugins2nix
-version:             0.3.0.0
+version:             0.3.0.1
 synopsis:            Generate nix for Jenkins plugins.
 description:         Generate nix for Jenkins plugins.
 homepage:            https://github.com/Fuuzetsu/jenkinsPlugins2nix#readme
@@ -12,6 +12,7 @@ category:            Nix
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
+tested-with:         GHC ==8.6.5 || ==8.8.4 || ==8.10.4 || ==8.10.5
 
 library
   hs-source-dirs:      src

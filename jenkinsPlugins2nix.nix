@@ -1,11 +1,11 @@
 { mkDerivation, attoparsec, base, bimap, bytestring, containers
-, cryptohash, hnix, http-conduit, mtl, optparse-applicative
-, prettyprinter, prettyprinter-ansi-terminal, stdenv, tasty-hspec
-, text, zip-archive
+, cryptohash, hnix, http-conduit, lib, mtl, optparse-applicative
+, prettyprinter, prettyprinter-ansi-terminal, tasty-hspec, text
+, zip-archive
 }:
 mkDerivation {
   pname = "jenkinsPlugins2nix";
-  version = "0.3.0.0";
+  version = "0.3.0.1";
   src = ./.;
   isLibrary = true;
   isExecutable = true;
@@ -19,5 +19,5 @@ mkDerivation {
   testHaskellDepends = [ base containers tasty-hspec text ];
   homepage = "https://github.com/Fuuzetsu/jenkinsPlugins2nix#readme";
   description = "Generate nix for Jenkins plugins";
-  license = stdenv.lib.licenses.bsd3;
+  license = lib.licenses.bsd3;
 }

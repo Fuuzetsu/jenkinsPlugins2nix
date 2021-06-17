@@ -1,0 +1,36 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build:
+    name: ghc ${{ matrix.ghc }}
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ghc: ["8.6.5", "8.8.4", "8.10.4", "8.10.5"]
+        cabal: ["3.4.0.0"]
+    env:
+      CONFIG: "--enable-tests --enable-benchmarks"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install system dependencies
+        run: sudo apt-get install -y libsodium-dev
+      - name: Setup Haskell
+        id: setup-haskell-cabal
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: ${{ matrix.cabal }}
+      - run: cabal v2-update
+      - run: cabal v2-freeze $CONFIG
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ hashFiles('cabal.project.freeze') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.ghc }}-
+      - run: cabal v2-build $CONFIG
+      - run: cabal v2-test $CONFIG
+      - run: cabal v2-haddock $CONFIG
+      - run: cabal v2-sdist
