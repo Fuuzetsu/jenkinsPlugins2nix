@@ -54,7 +54,7 @@ parseManifest = do
         group_id' <- optional $ getKey "Group-Id"
         short_name' <- getKey "Short-Name"
         long_name' <- getKey "Long-Name"
-        url' <- getKey "Url"
+        url' <- optional $ getKey "Url"
         plugin_version' <- getKey "Plugin-Version"
         hudson_version' <- optional $ getKey "Hudson-Version"
         jenkins_version' <- optional $ getKey "Jenkins-Version"

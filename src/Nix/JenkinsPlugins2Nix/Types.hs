@@ -98,7 +98,7 @@ data Manifest = Manifest
     -- | @Long-Name@.
   , long_name :: !Text
     -- | @Url@.
-  , url :: !Text
+  , url :: !(Maybe Text)
     -- | @Plugin-Version@.
   , plugin_version :: !Text
     -- | @Hudson-Version@.
