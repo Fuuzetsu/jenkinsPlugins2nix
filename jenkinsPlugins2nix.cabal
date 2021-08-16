@@ -23,8 +23,8 @@ library
                      , attoparsec     >=0.13 && <0.14
                      , bytestring     >=0.10 && <0.11
                      , containers     >=0.6  && <0.7
-                     , cryptohash     >=0.11 && <0.12
-                     , hnix           >=0.6  && <0.14
+                     , cryptonite     >=0.24 && <0.30
+                     , hnix           >=0.6  && <0.15
                      , http-conduit   >=2.3  && <2.4
                      , mtl            >=2.2  && <2.3
                      , prettyprinter  >=1.2  && <1.8

@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        ghc: ["8.6.5", "8.8.4", "8.10.4", "8.10.5"]
+        ghc: ["8.6.5", "8.8.4", "8.10.5", "9.0.1"]
         cabal: ["3.4.0.0"]
     env:
       CONFIG: "--enable-tests --enable-benchmarks"
