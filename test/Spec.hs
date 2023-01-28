@@ -1,7 +1,7 @@
 module Main where
 
 import qualified Nix.JenkinsPlugins2Nix.Tests.Parser as Parser
-import qualified Test.Tasty.Hspec as Hspec
+import qualified Test.Hspec as Hspec
 
 main :: IO ()
 main = Hspec.hspec $ do
