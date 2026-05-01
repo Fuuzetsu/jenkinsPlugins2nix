@@ -2,6 +2,7 @@
 
 ```
 Usage: jenkinsPlugins2nix [-r|--dependency-resolution [as-given|latest|jenkins[:VERSION]]]
+                          [--no-deps]
                           [--skip-optional]
                           (-p|--plugin PLUGIN_NAME{:PLUGIN_VERSION})
   Generate nix expressions for requested Jenkins plugins.
@@ -12,8 +13,11 @@ Available options:
                            `jenkins:<VERSION>` to resolve against a specific
                            Jenkins version (for example: `-r jenkins:2.401`).
   -p,--plugin PLUGIN_NAME{:PLUGIN_VERSION}
-                           Plugins we should generate nix for. Latest version is
-                           used if not specified.
+                            Plugins we should generate nix for. Latest version is
+                            used if not specified.
+  --no-deps                Do not download or include transitive dependencies;
+                           only generate nix for explicitly requested --plugin
+                           entries.
   --skip-optional          Skip optional dependencies when downloading plugins
   -h,--help                Show this help text
 
@@ -63,3 +67,10 @@ By default the tool downloads all dependencies (including optional ones) to
 avoid backward-compatibility problems. Use `--skip-optional` to exclude
 optional dependencies from downloads when you prefer a minimal set of
 dependencies.
+
+### No dependency downloads
+
+If you already have a fully resolved/pinned plugins list (for example produced by
+`jenkins-plugin-cli --list`) and only want the nix conversion, use `--no-deps`.
+This prevents `jenkinsPlugins2nix` from downloading any transitive dependencies
+and will only produce output for the plugins explicitly provided via `--plugin`.

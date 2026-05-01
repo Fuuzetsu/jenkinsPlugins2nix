@@ -2,11 +2,8 @@
   description = "jenkinsPlugins2nix";
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/23.05";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-compat.url = "github:edolstra/flake-compat";
   };
 
   outputs = { self, flake-compat, flake-utils, nixpkgs }: flake-utils.lib.eachDefaultSystem (system:

@@ -26,7 +26,7 @@ import           Nix.JenkinsPlugins2Nix.Types
 runParseManifest :: Text -> Either String Manifest
 runParseManifest = A.parseOnly parseManifest
 
--- | 'Manifest' parser.
+-- | Manifest parser.
 parseManifest :: A.Parser Manifest
 parseManifest = do
   kvs <- kvMap
@@ -35,27 +35,30 @@ parseManifest = do
         Nothing -> Left $ "Could not find " <> Text.unpack k <> " in " <> show kvs
         Just v -> Right v
 
+      getOptionalKey :: Text -> Either String (Maybe Text)
+      getOptionalKey k = Right (Map.lookup k kvs)
+
       getKeyParsing :: Text -> A.Parser a -> Either String a
       getKeyParsing k p = getKey k >>= A.parseOnly p
 
       eManifest :: Either String Manifest
       eManifest = do
         manifest_version' <- getKey "Manifest-Version"
-        archiver_version' <- optional $ getKey "Archiver-Version"
-        created_by' <- optional $ getKey "Created-By"
-        built_by' <- optional $ getKey "Built-By"
-        build_jdk' <- optional $ getKey "Build-Jdk"
-        extension_name' <- optional $ getKey "Extension-Name"
-        specification_title' <- optional $ getKey "Specification-Title"
-        implementation_title' <- optional $ getKey "Implementation-Title"
-        implementation_version' <- optional $ getKey "Implementation-Version"
-        group_id' <- optional $ getKey "Group-Id"
+        archiver_version' <- getOptionalKey "Archiver-Version"
+        created_by' <- getOptionalKey "Created-By"
+        built_by' <- getOptionalKey "Built-By"
+        build_jdk' <- getOptionalKey "Build-Jdk"
+        extension_name' <- getOptionalKey "Extension-Name"
+        specification_title' <- getOptionalKey "Specification-Title"
+        implementation_title' <- getOptionalKey "Implementation-Title"
+        implementation_version' <- getOptionalKey "Implementation-Version"
+        group_id' <- getOptionalKey "Group-Id"
         short_name' <- getKey "Short-Name"
         long_name' <- getKey "Long-Name"
-        url' <- optional $ getKey "Url"
+        url' <- getOptionalKey "Url"
         plugin_version' <- getKey "Plugin-Version"
-        hudson_version' <- optional $ getKey "Hudson-Version"
-        jenkins_version' <- optional $ getKey "Jenkins-Version"
+        hudson_version' <- getOptionalKey "Hudson-Version"
+        jenkins_version' <- getOptionalKey "Jenkins-Version"
         plugin_dependencies' <- either (\_ -> Right Set.empty) return $
           getKeyParsing "Plugin-Dependencies" parsePluginDependencies
         plugin_developers' <- either (\_ -> Right Set.empty) return $

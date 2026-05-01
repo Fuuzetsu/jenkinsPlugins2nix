@@ -34,6 +34,9 @@ data ResolutionStrategy =
 data Config = Config
   { -- | Dependency resolution strategy
     resolution_strategy :: !ResolutionStrategy
+    -- | If 'True', do not download or include transitive dependencies.
+    -- Only generate nix for explicitly requested plugins.
+  , no_deps :: !Bool
     -- | User-required plugins.
   , requested_plugins :: ![RequestedPlugin]
     -- | Plugin resolution
